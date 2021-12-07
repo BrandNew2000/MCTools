@@ -5,12 +5,12 @@
 #include <windows.h>
 #include <filesystem>
 #pragma comment(lib, "Urlmon.lib")
-
+#pragma warning(disable : 4996) //_CRT_SECURE_NO_WARNINGS
 
 using namespace std;
 
 string f1 = "paper.jar";
-string f2 = "server.config";
+string f2 = "server.properties";
 string f3 = "paper.yml";
 string f4 = "spigot.yml";
 string mem = "2G";
@@ -49,13 +49,13 @@ int dwnld(string url, string file)
 	LPSTR srcURL = const_cast<char*>(url.c_str());
 	LPSTR destFile = const_cast<char*>(file.c_str());
 
-	cout << "\n";
+	std::cout << " \n";
 	// URLDownloadToFile returns S_OK on success 
 	if (S_OK == URLDownloadToFile(NULL, srcURL, destFile, 0, NULL))
 	{
 
-		cout<<"Saved to ";
-		cout<<file;
+		std::cout << "Saved to ";
+		std::cout << file;
 
 		return 0;
 
@@ -64,7 +64,7 @@ int dwnld(string url, string file)
 	else
 	{
 
-		cout<<"Failed";
+		std::cout << "Failed";
 
 		return -1;
 
@@ -72,20 +72,17 @@ int dwnld(string url, string file)
 
 }
 
-// Download subroutine for Paperclip and EssentialsX.
-void download() 
+// Returns latest version of PaperClip
+
+string paperlatest()
 {
 	string data;
 	size_t x = 0;
 	size_t found = 0;
-	std::filesystem::create_directory("MCTools");
-	cout << "Downloading......."; 
-	if (dwnld("https://papermc.io/api/v2/projects/paper/versions/1.18/builds/54/downloads/paper-1.18-54.jar", "paper.jar") == -1)
-	{
-		cout << "\nDownload Failed. Check your internet connection and try again.";
-		exit(0);
-	}
-	/* ifstream infile;
+	string filename("MCTools\\paperver.txt");
+	fstream output_fstream;
+	system("curl https://papermc.io/api/v2/projects/paper/versions/1.18 > MCTools\\paperver.txt >nul");
+	ifstream infile;
 	infile.open("MCTools\\paperver.txt");
 	infile >> data;
 	while (found != string::npos)
@@ -94,12 +91,26 @@ void download()
 		if (found != string::npos)
 			x = found;
 	}
-	*/
-	// if (dwnld("https://ci.ender.zone/job/EssentialsX/lastSuccessfulBuild/artifact/jars/*zip*/jars.zip", "MCTools\\essentialsx.zip") == -1)
-	// {
-	//		cout << "\nDownload Failed. Check your internet connection and try again.";
-	//		exit(0);
-	// }
+	string ver = data.substr(x + 1, ver.length() - 2);
+	ver = ver.substr(0, ver.length() - 2);
+	return ver;
+
+}
+
+// Download subroutine for Paperclip and EssentialsX.
+void download()
+{
+	
+	std::filesystem::create_directory("MCTools");
+	std::cout << "Downloading Paperclip jar.....\n";
+	
+	string ver = paperlatest();
+	if (dwnld("https://papermc.io/api/v2/projects/paper/versions/1.18/builds/"+ver+"/downloads/paper-1.18-"+ver+".jar", "paper.jar") == -1)
+	 {
+		std::cout << "Download Failed. Check your internet connection and try again.";
+		exit(0);
+	 }
+	std::cout << "\nPaperclip downloaded.\n\n";
 }
 
 // Checks if four predefined files (f1, f2, f3, f4) exist. Returns false if no and true otherwise.
@@ -111,6 +122,27 @@ bool corefiles()
 		return true;
 }
 
+
+// Sets default settings. Argument tf converts yes/no to true/false and ignores other inputs. Arguments: file, value, name, type
+void defaultsettings(string file, string setting, string message, string arg)
+{
+	string value;
+	std::cout << "\n\n" << message;
+	std::cin >> value;
+	if (arg == "tf")
+	{
+		if (value == "y") appendLineToFile(file, setting + "=" + "true");
+		else if (value == "n") appendLineToFile(file, setting + " = " + "false");
+		else if (arg == "0");
+		else std::cout << "Invalid input. Proceeding with next setting";
+	}
+	else if (arg == "0");
+	else
+	{
+		appendLineToFile(file, setting + "=" + value);
+	}
+}
+
 // Depending on the corefiles() value (runs if true), it starts the first time wizard, downloads the
 // neccesary files using download(), and echos "eula=true" after a prompt from the user. 
 void firstsetup()
@@ -118,14 +150,41 @@ void firstsetup()
 	char x;
 	if (corefiles() == false)
 	{
-		cout << "\nNo files detected. First Setup initialized.";
-		cout << "\n\nIt seems you have started MCTools for the first time.";
-		cout << "\nMCTools will now download Paperclip and Essentials and set everything up.\n";
+		std::cout << "\nNo files detected. First Setup initialized.";
+		std::cout << "\n\nIt seems you have started MCTools for the first time. Would you like to install Paperclip? (y/n)";
+		std::cin >> x;
+		if (x == 'y');
+		else if(x=='n')
+		{
+			std::cout << "\n\nExiting....";
+			exit(0);
+		}
+		else
+		{
+			std::cout << "\n\nInvalid Input. Exiting....";
+			exit(0);
+		}
+		std::cout << "\n\nMCTools will now download Paperclip and set everything up.\n";
 		download();
-		cout << "\nDo you agree to Minecraft's EULA (y/n): ";
+		std::cout << "\nDo you agree to Minecraft's EULA (y/n): ";
 		cin >> x;
 		if (x == 'y') appendLineToFile("eula.txt", "eula=true");
-		else exit(0);
+		else if (x == 'n')
+		{
+			std::cout << "\n\nExiting....";
+			exit(0);
+		}
+		else
+		{
+			std::cout << "\n\nInvalid Input. Exiting....";
+			exit(0);
+		}
+		std::cout << "\n\nPlease enter the following cutomisation options. Entering 0 will assume the default value.";
+		defaultsettings("server.properties", "seed", "Please enter the seed (a random one will be generated by default): ", "");
+		defaultsettings("server.properties", "gamemode", "Please enter the gamemode (survival, creative) (default is survival): ", "");
+		defaultsettings("server.properties", "white-list", "Do you want to enable the whitelist (y/n) (default is false): ", "tf");
+		defaultsettings("server.properties", "énforce-whitelist", "Do you want to enforce the whitelist (y/n) (default is false): ", "tf");
+		std::cout << "\n\n\n";
 	}
 }
 
@@ -134,37 +193,40 @@ void start()
 {
 	string send = "java -Xmx" + mem + " -jar paper.jar --nogui";
 	if (exist(f1) == true)
-		cout << "Paper exits";
+		std::cout << "Paper exits";
 	else
 	{
-		cout << "Paper does not exist. Run update first.\nStopping...\n\n";
+		std::cout << "Paper does not exist. Run update first.\nStopping...\n\n";
 		exit(0);
 	}
-	cout << "\nStarting Server.....\n\n";
+	std::cout << "\nStarting Server.....\n\n";
 	system(send.c_str());
 }
 
 // Calls download() and adds a few messages. Used in conjunction with listop().
 void update()
 {
-	cout << "Update initialized\n";
+	std::cout << "Update initialized\n";
 	download();
-	cout << "\nUpdate completed\n";
+	std::cout << "\nUpdate completed\n";
 }
+
+void listop();
 
 // Displays information about the options in listop() and other helpful information.
 void help()
 {
-	cout << "Help stuff here";
+	std::cout << "\n\n\nWelcome to MCTools\nThe first time the executable is launched, MCTools automatically downloads Paperclip from PaperMC and configures a few basic settings.\nSubsequent launches start the tool list. The following options are avilable:\n\n1) Start Server: This option starts the server with options '-Xmx2G' and '--nogui'.\n2) Update: This option automatically downloads the latest version of paper from their website.\n3) Help: This option launches this helpfile.\n\nThe MCTools source code is available on Github under the MIT Licence. \nhttps://github.com/BrandNew2000/MCTools/\n\n";
+	listop();
 }
 
 // Displays a list of options to start or update the server and a help file.
 void listop()
 {
 	int x;
-	cout << "Enter option: \n1) Start Server \n2) Update Server \n[Enter option number]: ";
+	std::cout << "Enter option: \n\n1) Start Server \n\n2) Update Server \n\n3) Help \n\n[Enter option number]: ";
 	cin >> x;
-	cout << "\n";
+	std::cout << "\n";
 	switch (x)
 	{
 	case 1: start();
@@ -174,14 +236,14 @@ void listop()
 	case 3: help();
 		break;
 
-	default: cout << "Invalid input";
+	default: std::cout << "\nInvalid input";
 	}
 }
 
 // The main class (obviously).
 int main()
 {
-	
+	cout << "\nCopyright (C) BrandNew2005\nMCTools\n";
 	firstsetup();
 	listop();
 	return 0;
